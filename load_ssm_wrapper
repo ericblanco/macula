@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -x
+
+cd /tmp
+
+OS=`uname -s`
+case $OS in
+  Darwin) binary=aws-env-darwin-amd64 ;;
+  *) binary=aws-env-linux-amd64;;
+esac
+
+## get environent variable from parameter store via aws-env
+apt-get update
+apt-get -y install wget
+wget https://github.com/Droplr/aws-env/raw/master/bin/aws-env-linux-amd64 -O aws-env
+chmod 755 aws-env
+if [ ! -f aws-env ] ; then
+  echo "ERROR: Download of aws-env failed."
+  exit 1
+fi
+
+if [ "$RUN_ENV" == "production_dr" ] ; then
+  export AWS_REGION=us-west-2
+else
+  # default to staging
+  export AWS_REGION=us-east-1
+fi
+
+export AWS_ENV_PATH=/${RUN_ENV}/${DEPLOY_APPENV}
+
+set -f # turn off globing as params contain asterisks
+
+eval $(./aws-env)
+
+
+cd /app
+
+export NEW_RELIC_APP_NAME="macula py2 (${DEPLOY_APPENV})"
+
+if [ "x${USE_NEW_RELIC}" = "x1" -a -f /opt/macula/env/bin/newrelic-admin ] ; then
+  if [ -f /opt/macula/newrelic.ini ]; then
+    NEW_RELIC_CONFIG_FILE=/opt/macula/newrelic.ini newrelic-admin run-program ./macula.py runserver
+  else
+    exec newrelic-admin run-program ./macula.py runserver
+  fi
+else
+  exec python ./macula.py runserver
+fi

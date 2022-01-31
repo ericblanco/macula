@@ -1,0 +1,39 @@
+#!/bin/bash
+# ECR REPO ENDPOINTS
+ECR_STAGING="914808247515.dkr.ecr.us-east-1.amazonaws.com"
+ECR_BETA="052922968085.dkr.ecr.us-east-1.amazonaws.com"
+ECR_DR="010784068962.dkr.ecr.us-west-2.amazonaws.com"
+ECR_PROD="010784068962.dkr.ecr.us-east-1.amazonaws.com"
+ECR_SVL="052922968085.dkr.ecr.us-east-1.amazonaws.com"
+
+#DEFAULT REGION
+REGION="us-east-1"
+
+# ECR REPO PATH NAMES
+ECRPATH_STAGING="staging"
+ECRPATH_BETA="beta"
+ECRPATH_DR="production_dr"
+ECRPATH_PROD="production"
+ECRPATH_SVL="svl"
+
+# DNS NAMES
+CURRENT_HOST=`hostname`
+STAGING_PRIVATE_DNS_NAME="ip-10-121-101-147"
+PRODUCTION_PRIVATE_DNS_NAME="ip-10-127-0-89"
+DR_PRIVATE_DNS_NAME="ip-10-129-0-185"
+SVL_PRIVATE_DNS_NAME="ip-10-124-0-125"
+
+# GIT VARIABLES
+TARGET_APP=macula # git repo name
+TARGET_ENV=$TARGET_APP   # APP ENV i.e stg1 , stga ...
+TARGET_BRANCH=`git rev-parse --abbrev-ref HEAD`
+APPROOT_REPO=git@ghe.anomali.com:ThreatStream
+
+
+# BUILD VARIABLES
+NUM_PARAMs=2 # no. cli args
+ROOT_DIR=/tmp
+TARGET_DIR=${ROOT_DIR}/`whoami`-${TARGET_APP}-`date +"%Y%m%d%H%M"`
+BRANCH_TAG=`echo $TARGET_BRANCH | tr / _`
+TARGET_IMAGE=`whoami`-${TARGET_APP}-${BRANCH_TAG}-`date +"%Y%m%d%H%M"`
+LATEST_TAG=latest-${TARGET_ENV}-`date +"%Y%m%d%H%M"`

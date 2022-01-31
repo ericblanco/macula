@@ -1,0 +1,15 @@
+*.pyc
+*.rc
+
+.DS_Store
+.coverage
+.ipynb_checkpoints/
+.swp
+.project
+.pydevproject
+
+htmlcov/
+env/
+venv/
+
+.vagrant/

@@ -1,0 +1,19 @@
+
+export PORT="80"
+
+# Timeout for Tornado Tests
+export ASYNC_TEST_TIMEOUT="30"
+
+export TELESCOPE_URL="https://telescope.threatstream.com"
+
+# Model files can be local or s3 paths
+export MACULA_DOMAIN_MODEL=""
+export MACULA_IP_MODEL=""
+
+export MACULA_DB_NAME=""
+export MACULA_DB_USER=""
+export MACULA_DB_PASSWORD=""
+export MACULA_DB_HOST=""
+export MACULA_DB_PORT="5432"
+
+export MACULA_CACHE_INTERVAL_IN_DAYS="1"

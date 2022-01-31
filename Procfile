@@ -1,0 +1,1 @@
+web: ./macula.py runserver
