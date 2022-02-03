@@ -50,38 +50,56 @@ MACULA_UPLOADFILE_SUPPORT_MODE = ["s3"]
 MACULA_S3_ACCESS_KEY = os.getenv('MACULA_S3_ACCESS_KEY', None)
 MACULA_S3_SECRET_KEY = os.getenv('MACULA_S3_SECRET_KEY', None)
 
+# anamoli rule
+ANOMALI_RULE_FILE = os.getenv('ANOMALi_RULE_FILE', None)
+ANOMALI_RULE_FILE_PATH = os.path.join(BASEDIR, MACULA_ANOMALY_RULE_FILE)
+ANOMALI_RULE_S3_PATH = os.getenv('GREY_LIST_S3_PATH', 'greylist/domain/domain_greylist.csv')
+ANOMALI_RULE_URL = os.getenv('TELESCOPE_URL' + '/api/v1/anomali_rule.json')
+ANOMALI_RULE_RETURN_VALUE ={
+    "anomali_rules": {
+      "dm_blacklist": [],
+      "greylist": [{
+        "detail": "{\"virustotal\": {\"engines\": [\"CINS Army\"]}}",
+        "first_seen": "2022-01-24T00:00",
+        "id": 111340169,
+        "ip": "128.1.40.181/32",
+        "last_seen": "2022-01-24T00:00",
+        "list_type": "greylist",
+        "times_seen": 4
+      }
 
-# ip blacklist
-MACULA_IP_BLACKLIST_ENABLE = int(os.getenv("MACULA_IP_BLACKLIST_ENABLE", 1))
-MACULA_IP_BLACKLIST_BUCKET = os.getenv('MACULA_IP_BLACKLIST_BUCKET', 'ts-labs')
-MACULA_IP_BLACKLIST_S3_PATH = os.getenv('MACULA_IP_BLACKLIST_S3_PATH', 'ipblklst/ipblklst/ip_global_blacklist_detail.csv')
-MACULA_IP_BLACKLIST_DEST_PATH = os.path.join(MACULA_RESOURCE, 'ipblklst_macula.csv')
-MACULA_IP_BLACKLIST_CRON_STR = os.getenv('MACULA_IP_BLACKLIST_CRON_STR', '0 7,19 * * *')
-MACULA_IP_BLACKLIST_RETURN_VALUE = (0,1,100)
 
-# domain blacklist, update once per month
-MACULA_DM_BLACKLIST_ENABLE = int(os.getenv("MACULA_DM_BLACKLIST_ENABLE", 1))
-MACULA_DM_BLACKLIST_BUCKET = os.getenv('MACULA_DM_BLACKLIST_BUCKET', 'ts-labs')
-MACULA_DM_BLACKLIST_S3_PATH = os.getenv('MACULA_DM_BLACKLIST_S3_PATH', 'dmblklst/dmblklst/dm_global_blacklist_detail.csv')
-MACULA_DM_BLACKLIST_DEST_PATH = os.path.join(MACULA_RESOURCE, 'dmblklst_macula.csv')
-MACULA_DM_BLACKLIST_CRON_STR = os.getenv('MACULA_DM_BLACKLIST_CRON_STR', '0 7,19 * * *')
-MACULA_DM_BLACKLIST_RETURN_VALUE = (0,1.0,100)
+# # ip blacklist
+# #MACULA_IP_BLACKLIST_ENABLE = int(os.getenv("MACULA_IP_BLACKLIST_ENABLE", 1))
+# MACULA_IP_BLACKLIST_BUCKET = os.getenv('MACULA_IP_BLACKLIST_BUCKET', 'ts-labs')
+# MACULA_IP_BLACKLIST_S3_PATH = os.getenv('MACULA_IP_BLACKLIST_S3_PATH', 'ipblklst/ipblklst/ip_global_blacklist_detail.csv')
+# MACULA_IP_BLACKLIST_DEST_PATH = os.path.join(MACULA_RESOURCE, 'ipblklst_macula.csv')
+# MACULA_IP_BLACKLIST_CRON_STR = os.getenv('MACULA_IP_BLACKLIST_CRON_STR', '0 7,19 * * *')
+# MACULA_IP_BLACKLIST_RETURN_VALUE = (0,1,100)
+
+# # domain blacklist, update once per month
+# MACULA_DM_BLACKLIST_ENABLE = int(os.getenv("MACULA_DM_BLACKLIST_ENABLE", 1))
+# MACULA_DM_BLACKLIST_BUCKET = os.getenv('MACULA_DM_BLACKLIST_BUCKET', 'ts-labs')
+# MACULA_DM_BLACKLIST_S3_PATH = os.getenv('MACULA_DM_BLACKLIST_S3_PATH', 'dmblklst/dmblklst/dm_global_blacklist_detail.csv')
+# MACULA_DM_BLACKLIST_DEST_PATH = os.path.join(MACULA_RESOURCE, 'dmblklst_macula.csv')
+# MACULA_DM_BLACKLIST_CRON_STR = os.getenv('MACULA_DM_BLACKLIST_CRON_STR', '0 7,19 * * *')
+# MACULA_DM_BLACKLIST_RETURN_VALUE = (0,1.0,100)
 
 
 # whitelist top domains
-MACULA_WHITELIST_BUCKET = os.getenv('MACULA_WHITELIST_BUCKET', 'ts-labs')
-MACULA_WHITELIST_S3_PATH = os.getenv('MACULA_WHITELIST_S3_PATH', 'whitelist/domain_pivot/top_25000_domains.csv')
-MACULA_WHITELIST_DEST_PATH = os.path.join(MACULA_RESOURCE, 'domain_whitelist.csv')
-MACULA_WHITELIST_CRON_STR = os.getenv('MACULA_WHITELIST_CRON_STR', '0 6,18 * * *')
+# MACULA_WHITELIST_BUCKET = os.getenv('MACULA_WHITELIST_BUCKET', 'ts-labs')
+# MACULA_WHITELIST_S3_PATH = os.getenv('MACULA_WHITELIST_S3_PATH', 'whitelist/domain_pivot/top_25000_domains.csv')
+# MACULA_WHITELIST_DEST_PATH = os.path.join(MACULA_RESOURCE, 'domain_whitelist.csv')
+# MACULA_WHITELIST_CRON_STR = os.getenv('MACULA_WHITELIST_CRON_STR', '0 6,18 * * *')
 
 
-# Feeds for Macula rule 
-ENABLE_MACULA_FEEDS_RULE = int(os.getenv('ENABLE_MACULA_FEEDS_RULE', 1))
-MACULA_FEEDS_NAME = "feed_list"
-MACULA_FEEDS_BUCKET = os.getenv('MACULA_FEEDS_BUCKET', 'ts-labs')
-MACULA_FEEDS_S3_PATH = os.getenv('MACULA_FEEDS_S3_PATH', 'feeds-rule/feeds-rule.csv')
-MACULA_FEEDS_DEST_PATH = os.path.join(MACULA_RESOURCE, 'feeds-rule.csv')
-MACULA_FEEDS_CRON_STR = os.getenv('MACULA_FEEDS_CRON_STR', '0 6,18 * * *')
+# # Feeds for Macula rule 
+# ENABLE_MACULA_FEEDS_RULE = int(os.getenv('ENABLE_MACULA_FEEDS_RULE', 1))
+# MACULA_FEEDS_NAME = "feed_list"
+# MACULA_FEEDS_BUCKET = os.getenv('MACULA_FEEDS_BUCKET', 'ts-labs')
+# MACULA_FEEDS_S3_PATH = os.getenv('MACULA_FEEDS_S3_PATH', 'feeds-rule/feeds-rule.csv')
+# MACULA_FEEDS_DEST_PATH = os.path.join(MACULA_RESOURCE, 'feeds-rule.csv')
+# MACULA_FEEDS_CRON_STR = os.getenv('MACULA_FEEDS_CRON_STR', '0 6,18 * * *')
 
 #Macula darklist
 ENABLE_MACULA_DARKLIST_RULE = int(os.getenv('ENABLE_MACULA_FEEDS_RULE', 1))
@@ -93,17 +111,17 @@ MACULA_DARKLIST_CRON_STR = os.getenv('MACULA_DARKLIST_CRON_STR', '0 6,18 * * *')
 
 
 # models info
-# TODO: update these to s3 paths once models are built regularly
-MODEL_NAME = 'macula-model-{}.mll'
-S3_MODELS_PATH = 'tmp/macula/{}/latest/'#"macula-model/{}/latest/"
-S3_ARCHIVE_PATH = 'tmp/macula/{}/archive/'#"macula-model/{}/archive/"
-AUXILIARY_FILES = ["trainingset-{}.csv.gz", "transformed-{}.jsonl", 'raw-features-{}.jsonl', MODEL_NAME]
-DATE_FORMAT = '%Y-%m-%d'
-MACULA_MODEL_BUCKET = os.getenv('MACULA_MODEL_BUCKET', 'ts-labs')
-MACULA_DOMAIN_MODEL_CRON_STR = os.getenv('MACULA_DOMAIN_MODEL_CRON_STR', '30 15 * * 1,4')
-MACULA_IP_MODEL_CRON_STR = os.getenv('MACULA_IP_MODEL_CRON_STR', '30 15 * * 1,4')
-VERIFY = False
-ARCHIVE = int(os.getenv('MACULA_MODEL_ARCHIVE', 0))
+# TO DO: update these to s3 paths once models are built regularly
+# MODEL_NAME = 'macula-model-{}.mll'
+# S3_MODELS_PATH = 'tmp/macula/{}/latest/'#"macula-model/{}/latest/"
+# S3_ARCHIVE_PATH = 'tmp/macula/{}/archive/'#"macula-model/{}/archive/"
+# AUXILIARY_FILES = ["trainingset-{}.csv.gz", "transformed-{}.jsonl", 'raw-features-{}.jsonl', MODEL_NAME]
+# DATE_FORMAT = '%Y-%m-%d'
+# MACULA_MODEL_BUCKET = os.getenv('MACULA_MODEL_BUCKET', 'ts-labs')
+# MACULA_DOMAIN_MODEL_CRON_STR = os.getenv('MACULA_DOMAIN_MODEL_CRON_STR', '30 15 * * 1,4')
+# MACULA_IP_MODEL_CRON_STR = os.getenv('MACULA_IP_MODEL_CRON_STR', '30 15 * * 1,4')
+# VERIFY = False
+# ARCHIVE = int(os.getenv('MACULA_MODEL_ARCHIVE', 0))
 
 # for bitdefender rule
 ENABLE_BITDEFENDER_RULE = int(os.getenv('ENABLE_BITDEFENDER_RULE', 1))
@@ -131,8 +149,17 @@ ALL_WL_BUCKET = os.getenv('ALL_WL_DOMAINS_BUCKET', 'ts-labs')
 ALL_WL_S3_PATH = os.getenv('ALL_WL_DOMAINS_S3_PATH', 'all_macula_wl.csv')
 ALL_WL_DEST_PATH = os.path.join(MACULA_RESOURCE, 'all_macula_wl.csv')
 ALL_WL_CRON_STR = os.getenv('ALL_WL_DOMAINS_CRON_STR', '0 6,18 * * *')
-MACULA_WL_RETURN_VALUE = (1,0,0)
-
+MACULA_WL_RETURN_VALUE =  {
+    'benign': 1.0,
+    'malicious': 0.0,
+    'rescaled': 0.0,
+    'meta': {
+        'type': 'url',
+        'success': True,
+        "source": "whitelist",
+        'explanation': "URL matches whitelist."
+    }
+}
 
 # Regex for URL extraction
 _USER_INFO_RE = r'(?:[-a-z0-9._~%!$&\'()*+,;=:]+@)?'

@@ -1,40 +1,48 @@
 #!/usr/bin/env python
 """
 Tornado app that will server the endpoints for Macula.  We'll fetch features using AsyncHTTPClients and feed the results through models.  Easy-peasy
-"""
-import settings
-from models.manager import LoadModelFromS3, macula_model_scheduler
-from tornado.ioloop import IOLoop
-from tornado.web import RequestHandler, Application, url
-from tornado import gen
-from tornado import httpclient
-from raven import Client
-from pandas import DataFrame
-from copy import deepcopy
-from urlparse import urlparse
-from utils.telescope_client import TelescopeClient
-from utils.log_manager import LogsManager
-from utils.tools import (
-    TypeDetector, reformat_scores, type_identifier)
-from utils.cache import get_cached_ioc_scores, get_uncached_ioc_scores, write_ioc_scores_to_cache
-from utils.file_based_set import UploadFilesContainer
+
 import momoko
 import sys
 import argparse
+import re
+"""
+import argparse
+import json
 import logging
 import re
-import json
-from settings import (
-    ALL_WL_BUCKET, ALL_WL_CRON_STR, ALL_WL_DEST_PATH,
-    ALL_WL_S3_PATH, ALL_WL_NAME, MACULA_S3_ACCESS_KEY,
-    MACULA_DEBUG, MACULA_PORT, MACULA_DB_NAME, MACULA_DB_USER, MACULA_DB_PASSWORD,
-    MACULA_DB_HOST, MACULA_DB_PORT, MACULA_SENTRY_URL, MACULA_S3_SECRET_KEY, MACULA_DOMAIN_PIVOT_TOP_NUM,GREY_LIST_NAME, GREY_LIST_BUCKET, GREY_LIST_S3_PATH, GREY_LIST_DEST_PATH,GREY_LIST_CRON_STR, MACULA_GREYLIST_ENABLE,
-    MACULA_FEEDS_BUCKET, MACULA_FEEDS_S3_PATH, MACULA_FEEDS_DEST_PATH, MACULA_FEEDS_CRON_STR,MACULA_FEEDS_NAME,
-    ENABLE_MACULA_DARKLIST_RULE, MACULA_DARKLIST_NAME, MACULA_DARKLIST_BUCKET, MACULA_DARKLIST_S3_PATH, MACULA_DARKLIST_DEST_PATH, MACULA_DARKLIST_CRON_STR
-    )
+import sys
+from copy import deepcopy
+import momoko
+#from pandas import DataFrame  RARELY EVER USED IN PRODUCTION
+#from raven import Client
+from tornado import gen, httpclient
+from tornado.ioloop import IOLoop
+from tornado.web import Application, RequestHandler, url
+from urllib.parse import urlparse
 
- 
-
+import settings
+from models.manager import LoadModelFromS3, macula_model_scheduler
+# from settings import (ALL_WL_BUCKET, ALL_WL_CRON_STR, ALL_WL_DEST_PATH,
+#                       ALL_WL_NAME, ALL_WL_S3_PATH, ENABLE_MACULA_DARKLIST_RULE,
+#                       GREY_LIST_BUCKET, GREY_LIST_CRON_STR,
+#                       GREY_LIST_DEST_PATH, GREY_LIST_NAME, GREY_LIST_S3_PATH,
+#                       MACULA_DARKLIST_BUCKET, MACULA_DARKLIST_CRON_STR,
+#                       MACULA_DARKLIST_DEST_PATH, MACULA_DARKLIST_NAME,
+#                       MACULA_DARKLIST_S3_PATH, MACULA_DB_HOST, MACULA_DB_NAME,
+#                       MACULA_DB_PASSWORD, MACULA_DB_PORT, MACULA_DB_USER,
+#                       MACULA_DEBUG, MACULA_DOMAIN_PIVOT_TOP_NUM,
+#                       MACULA_FEEDS_BUCKET, MACULA_FEEDS_CRON_STR,
+#                       MACULA_FEEDS_DEST_PATH, MACULA_FEEDS_NAME,
+#                       MACULA_FEEDS_S3_PATH, MACULA_GREYLIST_ENABLE,
+#                       MACULA_PORT, MACULA_S3_ACCESS_KEY, MACULA_S3_SECRET_KEY,
+#                       MACULA_SENTRY_URL)
+from utils.cache import (get_cached_ioc_scores, get_uncached_ioc_scores,
+                         write_ioc_scores_to_cache)
+from utils.file_based_set import UploadFilesContainer
+from utils.log_manager import LogsManager
+from utils.telescope_client import TelescopeClient
+from utils.tools import TypeDetector, reformat_scores, type_identifier
 
 logger = logging.getLogger(__name__)
 logging_level = logging.DEBUG if MACULA_DEBUG else logging.INFO
@@ -52,14 +60,27 @@ log_manager = LogsManager()
 
 
 
-from models.manager import score_mixed_indicators
 from models.explainer import apply_thelist
-class MaculaRequestHandler(RequestHandler):
+from models.manager import score_mixed_indicators
 
+
+class AnamoliRules(MaculaRequestHandler):
+    def make_app(MaculaRequestHandler):
+        return Application([
+            url(r'/', AnamoliRules, name='anamoli_rules'),
+            url(r'/(?P<indicator_type>[a-zA-Z0-9_]+)', AnamoliRules, name='anamoli_rules'),
+        ])
+
+# app = Application([
+#     url(r"/", ANAMOLI_RULES),
+#     url(r"/api/score", ScoreHandler),
+#     url(r"/api/score_ips", ScoreIPsHandler),
+#     url(r"/api/score_domains", ScoreDomainsHandler)])    
+    
     @property
     def db(self):
         return self.application.db
-
+    
     @property
     def black_list(self):
         bl_obj = upload_file_container.get("ip_blacklist")
@@ -357,11 +378,11 @@ class ScoreIPsHandler(MaculaRequestHandler):
         try:
             scores = yield self.process_generic_iocs(iocs)
             self.write(scores)
-        except Exception, e:
+        except Exception as e:
             sentry.captureException()
-            logger.exception('Error processing IOCs:{}'.format(self.get_argument('ips')))
-            self.set_status(414)
-            self.write({
+        logger.exception('Error processing IOCs:{}'.format(self.get_argument('ips')))
+        self.set_status(414)
+        self.write({
                     "Error while processing IOC's": str(e)
                 })
 
@@ -388,7 +409,7 @@ class ScoreDomainsHandler(MaculaRequestHandler):
         try:
             scores = yield self.process_generic_iocs(iocs)
             self.write(scores)
-        except Exception, e:
+        except Exception as e:
             sentry.captureException()
             logger.exception('Error processing IOCs:{}'.format(self.get_argument('domains')))
             self.set_status(414)
@@ -431,7 +452,7 @@ class ScoreHandler(MaculaRequestHandler):
         try:
             scores = yield self.process_generic_iocs(iocs)
             self.write(scores)
-        except Exception, e:
+        except Exception as e:
             sentry.captureException()
             logger.exception('Error processing IOCs:{}'.format(self.get_argument('indicators')))
             self.set_status(414)
@@ -450,7 +471,7 @@ class ScoreHandler(MaculaRequestHandler):
         }
         """
         data = json.loads(self.request.body)
-
+        anomali_rules = data.get('anomali_rules', [])
         iocs = data.get('indicators').split(',')
         self.explain = data.get('explain', False)
         self.explain_items = data.get('explain_items', 10)
@@ -465,7 +486,7 @@ class ScoreHandler(MaculaRequestHandler):
         try:
             scores = yield self.process_generic_iocs(iocs)
             self.write(scores)
-        except Exception, e:
+        except Exception as e:
             sentry.captureException()
             logger.exception('Error processing IOCs:{}'.format(data.get('indicators')))
             self.set_status(414)
@@ -480,23 +501,23 @@ class ShipBuilderStatusHandler(MaculaRequestHandler):
         self.write({'status': 'ok'})
 
 
-def make_app(debug=False):
-    app = Application([
-            # Endpoints for scoring indicators based on features from Telescope enrichment
-            url(r"/", ShipBuilderStatusHandler),
-            url(r"/api/score", ScoreHandler),
-            url(r"/api/score_ips", ScoreIPsHandler),
-            url(r"/api/score_domains", ScoreDomainsHandler),
+# def make_app(debug=False):
+#     app = Application([
+#             # Endpoints for scoring indicators based on features from Telescope enrichment
+#             url(r"/", ShipBuilderStatusHandler),
+#             url(r"/api/score", ScoreHandler),
+#             url(r"/api/score_ips", ScoreIPsHandler),
+#             url(r"/api/score_domains", ScoreDomainsHandler),
 
             # Actual use case for previous Features endpoint:
             #   "Why was this indicator scored like it was?"
-            #   -> create a better response to this using the ML model
-            #   -> More Like This functionality would be useful too
+    #         #   -> create a better response to this using the ML model
+    #         #   -> More Like This functionality would be useful too
 
-            ],
-            debug=debug
-        )
-    return app
+    #         ],
+    #         debug=debug
+    #     )
+    # return app
 
 
 def start_static_check_list():
@@ -505,133 +526,16 @@ def start_static_check_list():
     like: local, s3
     :return:
     """
-    def load(name, **config):
-        """
-        try to get this obj,
-        if not exist, load it,
-        if still fail, return empty set
-        :param name:
-        :param config:
-        :return:
-        """
-        obj = upload_file_container.get(name)
-        if not obj:
-            if config.get("load_type") == "s3":
-                upload_file_container.load(load_type="s3",
-                                           name=name,
-                                           multi_entry=config.get("multi_entry",False),
-                                           bucket=config.get("bucket"),
-                                           s3_path=config.get("s3_path"),
-                                           saved_path=config.get("saved_path"),
-                                           secret_key=config.get("secret_key"),
-                                           access_key=config.get("access_key"),
-                                           cron_str=config.get("cron_str"))
+   
+    # Usage:
+    #     Run the server:
+    #         run.py runserver --config server-config.json
 
-            obj = upload_file_container.get(name)
-            if not obj:
-                upload_file_container.set(name, set())         
-                
-    load(name="domain_whitelist",
-         load_type="s3",
-         bucket=settings.MACULA_WHITELIST_BUCKET,
-         s3_path=settings.MACULA_WHITELIST_S3_PATH,
-         saved_path=settings.MACULA_WHITELIST_DEST_PATH,
-         secret_key=settings.MACULA_S3_SECRET_KEY,
-         access_key=settings.MACULA_S3_ACCESS_KEY,
-         cron_str=settings.MACULA_WHITELIST_CRON_STR)
-
-    load(name="ip_blacklist",
-         load_type="s3",
-         bucket=settings.MACULA_IP_BLACKLIST_BUCKET,
-         s3_path=settings.MACULA_IP_BLACKLIST_S3_PATH,
-         saved_path=settings.MACULA_IP_BLACKLIST_DEST_PATH,
-         secret_key=settings.MACULA_S3_SECRET_KEY,
-         access_key=settings.MACULA_S3_ACCESS_KEY,
-         cron_str=settings.MACULA_IP_BLACKLIST_CRON_STR,)
-
-    load(name="dm_blacklist",
-        load_type="s3",
-        bucket=settings.MACULA_DM_BLACKLIST_BUCKET,
-        s3_path=settings.MACULA_DM_BLACKLIST_S3_PATH,
-        saved_path=settings.MACULA_DM_BLACKLIST_DEST_PATH,
-        secret_key=settings.MACULA_S3_SECRET_KEY,
-        access_key=settings.MACULA_S3_ACCESS_KEY,
-        cron_str=settings.MACULA_DM_BLACKLIST_CRON_STR,)
-
-    load(name=ALL_WL_NAME,
-         load_type="s3",
-         bucket=ALL_WL_BUCKET,
-         s3_path=ALL_WL_S3_PATH,
-         saved_path=ALL_WL_DEST_PATH,
-         secret_key=MACULA_S3_SECRET_KEY,
-         access_key=MACULA_S3_ACCESS_KEY,
-         cron_str=ALL_WL_CRON_STR, )
-
-    load(name=MACULA_FEEDS_NAME,
-         load_type="s3",
-         bucket=MACULA_FEEDS_BUCKET,
-         s3_path=MACULA_FEEDS_S3_PATH,
-         saved_path=MACULA_FEEDS_DEST_PATH,
-         secret_key=MACULA_S3_SECRET_KEY,
-         access_key=MACULA_S3_ACCESS_KEY,
-         cron_str=MACULA_FEEDS_CRON_STR, )    
-
-    load(name=GREY_LIST_NAME,
-         load_type="s3",
-         bucket=GREY_LIST_BUCKET,
-         s3_path=GREY_LIST_S3_PATH,
-         saved_path=GREY_LIST_DEST_PATH,
-         secret_key=MACULA_S3_SECRET_KEY,
-         access_key=MACULA_S3_ACCESS_KEY,
-         cron_str=GREY_LIST_CRON_STR, )
-
-    load(name=MACULA_DARKLIST_NAME,
-         load_type="s3",
-         bucket=MACULA_DARKLIST_BUCKET,
-         s3_path=MACULA_DARKLIST_S3_PATH,
-         saved_path=MACULA_DARKLIST_DEST_PATH,
-         secret_key=MACULA_S3_SECRET_KEY,
-         access_key=MACULA_S3_ACCESS_KEY,
-         cron_str=MACULA_DARKLIST_CRON_STR, )
-def start_server(port, debug):
-    #Load the models and schedule cron job to load them frequently
-    LoadModelFromS3('ip')
-    LoadModelFromS3('domain')
-    macula_model_scheduler()
-    start_static_check_list()
-    app = make_app(debug)
-    ioloop = IOLoop.instance()
-
-    app.db = momoko.Pool(
-        dsn='dbname={} user={} password={} host={} port={}'.format(
-            MACULA_DB_NAME, MACULA_DB_USER, MACULA_DB_PASSWORD, MACULA_DB_HOST, MACULA_DB_PORT
-        ),
-        size=10,
-        ioloop=ioloop,
-    )
-
-    # this is one way to run ioloop in sync
-    future = app.db.connect()
-    ioloop.add_future(future, lambda f: ioloop.stop())
-    ioloop.start()
-
-    app.listen(port)
-    ioloop.start()
-    return app
-
-def parse_args(args):
-    """
-    Usage:
-        Run the server:
-            run.py runserver --config server-config.json
-
-        Train a new model:
-            run.py train input.csv new_model.model       # where input.csv has labeled header of 'value', 'label', (optional 'type' if --type not specified)
-                                                            # and 'features' may be added to skip resolution with json feature dictionaries (output from 'run.py resolve')
-        Resolve features without training:
-            run.py resolve input.csv > output.csv   # where input.csv has labeled header of 'value', 'label'
-
-    """
+    #     Train a new model:
+    #         run.py train input.csv new_model.model       # where input.csv has labeled header of 'value', 'label', (optional 'type' if --type not specified)
+    #                                                         # and 'features' may be added to skip resolution with json feature dictionaries (output from 'run.py resolve')
+    #     Resolve features without training:
+    #         run.py resolve input.csv > output.csv   # where input.csv has labeled header of 'value', 'label'
 
     def runserver(args):
         port = MACULA_PORT
